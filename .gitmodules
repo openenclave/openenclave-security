@@ -1,0 +1,15 @@
+[submodule "src/static/codeql/codeql"]
+	path = src/static/codeql/codeql
+	url = https://github.com/github/codeql.git
+	branch = rc/1.26
+	ignore = all
+[submodule "sut/openenclave"]
+	path = sut/openenclave
+	url = https://github.com/openenclave/openenclave.git
+	branch = master
+	ignore = all
+[submodule "sut/oeedger8r-cpp"]
+	path = sut/oeedger8r-cpp
+	url = https://github.com/openenclave/oeedger8r-cpp.git
+	branch = master
+	ignore = all
