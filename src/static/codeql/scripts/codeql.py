@@ -20,6 +20,7 @@ CODEQL_CLI_URL = "https://github.com/github/codeql-cli-binaries/releases/downloa
 PROJECT_CODEQL_DB = "openenclave-codeql-db"
 STATIC_CODEQL_DIR = "src/static/codeql"
 SUT_OPENENCLAVE_DIR = "sut/openenclave"
+USER_SCAN_DIR = None
 QUERY_SUITES_DIR = "queries/cpp/suites"
 CODEQL_CLI_PATH = "codeql-cli/codeql/codeql"
 OE_AND_CODEQL_BUILTIN_QUERIES = "oe-codeql-security-queries.qls"
@@ -77,11 +78,14 @@ def get_codeql_path():
     return os.path.join(get_repo_root(), STATIC_CODEQL_DIR)
 
 
-def get_openenclave_project_path():
+def get_scan_path():
     r"""
-    :return:(Str) Open Enclave project path.
+    :return:(Str) Path of project to be scanned.
     """
-    return os.path.join(get_repo_root(), SUT_OPENENCLAVE_DIR)
+    if USER_SCAN_DIR is not None:
+        return USER_SCAN_DIR
+    else:
+        return os.path.join(get_repo_root(), SUT_OPENENCLAVE_DIR)
 
 
 def get_codeql_db_path():
@@ -174,7 +178,7 @@ def invoke_process(cmd_line):
     :return:(integer) Process exit status.
     """
     try:
-        log_banner(f"⚡︎Invoking: {cmd_line}")
+        log_banner(f"Invoking: {cmd_line}")
         called_process = subprocess.run(
             cmd_line,
             stdout=None,
@@ -248,7 +252,7 @@ def create_codeql_database(clean=False):
     """
     codeql_db_path = get_codeql_db_path()
     codeql_suite_path = os.path.join(get_codeql_path(), "codeql")
-    openenclave_project_path = get_openenclave_project_path()
+    openenclave_project_path = get_scan_path()
     if not os.path.exists(codeql_db_path) or clean:
         lgtm_build_dir = os.path.join(openenclave_project_path, "_lgtm_build_dir")
         if os.path.exists(lgtm_build_dir):
@@ -364,6 +368,31 @@ def run_codeql_scan(clean=True, scan_builtin_queries=False):
         return [Status.CODEQL_ANALYSIS_FAILED, 0]
     return [Status.SUCCESS, get_severity_issues([Severity.ERROR, Severity.WARNING])]
 
+def set_scan_path(path_arg):
+    r""" Parses the Open Enclave SDK directory path given by the user.
+    :param path_arg:(string) Path to Open Enclave SDK directory
+    :return:(void)
+    """
+
+    if len(path_arg) == 0:
+        return
+
+    global USER_SCAN_DIR
+
+    scan_path = os.path.expanduser(path_arg)
+
+    # If both strings are equal, '~' is not given in the path; path given may be relative
+    if scan_path == path_arg:
+        # If the given path is not an absolute path, generate absolute path
+        if not scan_path.startswith("/"):
+            scan_path = os.path.abspath(scan_path)
+
+    scan_path = os.path.normpath(scan_path)
+
+    if os.path.exists(scan_path):
+        USER_SCAN_DIR = scan_path
+    else:
+        logger.info(f"Given scan_path ({scan_path}) does not exist, using default path")
 
 def print_usage():
     r""" Harness usage
@@ -372,9 +401,10 @@ def print_usage():
     log_banner(
         "Usage:\n\n"
         "codeql.py [--clean][--builtin][--help]\n"
-        "--help     : Shows this message\n"
-        "--clean    : Clean build\n"
-        "--builtin  : Run CodeQL analysis with builtin queries along with OpenEnclave specific queries.\n"
+        "--help      : Shows this message\n"
+        "--clean     : Clean build\n"
+        "--scan_path : Path to the repository to scan --scan_path=<repository directory>\n"
+        "--builtin   : Run CodeQL analysis with builtin queries along with OpenEnclave specific queries.\n"
     )
 
 
@@ -392,6 +422,15 @@ def main_fun():
         elif arg == "--help":
             print_usage()
             return
+        elif arg.startswith("--scan_path="):
+            set_scan_path(arg.split("=",1)[1])
+
+    scan_path = get_scan_path()
+    logger.info(f"Scan directory: {scan_path}")
+    if not os.path.exists(scan_path):
+        logger.error(f"...Scan directory does not exist, exiting...")
+        return
+
     result = run_codeql_scan(clean=clean_build, scan_builtin_queries=scan_built_in)
     if result[0] != Status.SUCCESS:
         log_banner(f"Failed to run CodeQL Analysis, Error: {result[0]}")
