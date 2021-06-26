@@ -1,0 +1,12 @@
+// Copyright (c) Open Enclave SDK contributors.
+// Licensed under the MIT License.
+
+enclave {
+    from "openenclave/edl/syscall.edl" import *;
+    from "platform.edl" import *;
+    from "fuzzsupport.edl" import *;
+
+    trusted {
+        public void dummy_ecall();
+    };
+};
