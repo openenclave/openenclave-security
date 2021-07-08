@@ -1,0 +1,14 @@
+// Copyright (c) Open Enclave SDK contributors.
+// Licensed under the MIT License.
+
+enclave {
+    from "openenclave/edl/logging.edl" import oe_write_ocall;
+    from "openenclave/edl/fcntl.edl" import *;
+    from "openenclave/edl/attestation.edl" import *;
+    from "openenclave/edl/sgx/attestation.edl" import *;
+    from "openenclave/edl/sgx/cpu.edl" import *;
+    from "openenclave/edl/sgx/thread.edl" import *;
+    from "openenclave/edl/keys.edl" import *;
+    from "fuzzsupport.edl" import *;
+    include "openenclave/bits/sgx/sgxtypes.h"
+};

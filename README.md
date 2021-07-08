@@ -2,10 +2,10 @@
 This repository will host security automation projects for Open Enclave. These scripts and toolset are used in continous intergration, developer testing and security analysis of Open Enclave. 
 
 1. Static Analysis
-    - [OpenEnclave-CodeQL](src/static/codeql/README.md)
+    - [OpenEnclave-CodeQL](src/static/codeql)
 
 2. Dynamic Analysis 
-    - OpenEnclave-Fuzzing - TBD
+    - [OpenEnclave-Fuzzing](src/dynamic/fuzzing)
 
 # Prerequisites
 ## Build dependencies

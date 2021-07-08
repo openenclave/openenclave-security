@@ -1,7 +1,7 @@
 [submodule "src/static/codeql/codeql"]
 	path = src/static/codeql/codeql
 	url = https://github.com/github/codeql.git
-	branch = rc/1.26
+	branch = main
 	ignore = all
 [submodule "sut/openenclave"]
 	path = sut/openenclave
@@ -14,3 +14,7 @@
 	branch = master
 	ignore = all
 
+[submodule "3rdparty/linux-sgx"]
+	path = 3rdparty/linux-sgx
+	url = https://github.com/intel/linux-sgx.git
+	ignore = all
