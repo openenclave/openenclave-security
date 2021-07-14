@@ -1,4 +1,4 @@
-# Best Practices for Secure Enclaves
+# Best Practices for Keeping Enclaves Secure
 Use this guide to apply secure patterns and avoid common mistakes that put the security of your enclave applications at risk.
 
 1.  [Best Practices for Interface Custom Marshaling ](#best-practices-for-interface-custom-marshaling)
@@ -28,7 +28,7 @@ In this simplified EDL example, the function takes one pointer-to-void parameter
 
 > We'd like to stress that a secure best practice for enclave interfaces is to _avoid_ custom marshaling. But we understand that there may be cases where avoiding it is impractical, so in these sections we will help you do it safely.
 
-The ecall function implementation below has several problems. We will be correcting this code as we move through the material. The general impetus for custom marshaling in this sample code is to avoid expensive intermediate copying of shared memory introduced by the oeedger8r's generated code. (Data passed to `render_data()` is "flat", that is, the data format is non-referential (and thus non-self-referencing). These attributes reduce threats to enclaves from untrusted data streams. More on this in the following sections.)
+The ecall function implementation below has several problems. We will be correcting this code as we move through the material. The general impetus for custom marshaling in this sample code is to avoid expensive intermediate copying of shared memory introduced by the oeedger8r's generated code. (Data passed to `render_data()` is "flat", that is, the data format is non-referential and thus non-_self_-referencing. These attributes reduce threats to enclaves from untrusted data streams. More on this in the following sections.)
 
 ```c++
 typedef struct _blob {
@@ -85,7 +85,7 @@ int ecall_with_user_check1(void* ptr) {
 
 Let's highlight a logical mistake that we've seen made. Some have regarded the memory validation functions as boolean opposites of each other, that is: `oe_is_within_enclave() == !oe_is_outside_enclave()`. This is incorrect for several reasons.
 
-To understand why this function pair are _not_ boolean opposites, it helps to consider the SGX implementation: [memory.c](enclave/core/sgx/memory.c). There are three conditions that the functions validate:
+To understand why this function pair are _not_ boolean opposites, it helps to consider the SGX implementation: [memory.c](https://github.com/openenclave/openenclave/blob/08ebe60c1d2e3ea24ac634c673a420296bff3352/enclave/core/sgx/memory.c). There are three conditions that the functions validate:
 1)	The pointer is not null.
 2)	The bounding arithmetic operations do not wrap (i.e. numerical overflow).
 3)	The block lies completely within or outside of the enclave.
@@ -154,7 +154,7 @@ int ecall_with_user_check3(void* ptr) {
 
 Another element of marshaling code is ensuring, as complex structures are parsed, that nested structures are also within the outer bounds. This is especially important for internal functions like `render_data()` that may be unaware that the memory is untrusted. Use the same techniques on the inner structures that were used on the outer.
 
-> A warning about legacy data-parsers: Take care when passing "hot" data to code that may not have been written to parse maliciously crafted input. We have seen cases where legacy code that parses self-formatting or self-refencing data was used in new enclave applications. This can lead to significant vulnerabilities if the data being parsed is still in controlled by the host, as may be the case with custom marshaling. In the case of this sample code, as mentioned earlier, `render_data()` parses "flat" data this not nested nor self-referencing, so it's safe (and performant) to pass it "hot" data that is controlled by the host. Care must still be taken though, to avoid data-consistency and other integrity problems.
+> A warning about legacy data-parsers: Take care when passing "hot" data to code that may not have been written to parse maliciously crafted input. We have seen cases where legacy code that parses self-formatting or self-refencing data was used in new enclave applications. This can lead to significant vulnerabilities if the data being parsed is still controlled by the host, as may be the case with custom marshaling. In the case of this sample code, as mentioned earlier, `render_data()` parses "flat" data that is not nested nor self-referencing, so it's safe (and performant) to pass it "hot" data that is controlled by the host. Care must still be taken though, to avoid data-consistency and other app-level integrity problems.
 
 ```diff
 int ecall_with_user_check4(void* ptr) {
