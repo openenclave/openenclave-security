@@ -225,6 +225,8 @@ int ecall_with_user_check5(void* ptr) {
 
 Open Enclave is an SDK that helps developers build apps that will run inside a hardware-based Trusted Execution Environment (TEE). At their core, TEEs protect application code and data at runtime from the host environment. Without new, hardware-implemented protections, a malicious or compromised host operating system would be able to modify code or read data. Any secrets managed by an application during runtime would be at risk of exposure. Open Enclave SDK helps developers build applications that are protected from these threats.
 
+> It's important to note that enclaves do not provide _code confidentiality_. This is noteworthy in the context of this discussion because, as you will read, hard-coded creditentials in application code is to be avoided -- with or without enclaves protections.
+
 Enclaves provide new trust boundary protections that address old threats and open new capabilities. But just as Open Enclave and TEEs shift the security model, application developers must shift how they handle data, especially secrets, like keys and passwords.
 <br />
 <br />
