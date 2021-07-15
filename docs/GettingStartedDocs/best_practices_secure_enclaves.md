@@ -100,7 +100,7 @@ The last condition is subtle: In some potentially malicious cases, the memory ra
 
 ## Time-of-check/Time-of-use or "double-fetch" vulnerabilities
 
-One class of vulnerabilities that custom marshaling code should protect against is referred to as time-of-check/time-of-use, or TOCTOU. Another name for this problem is "double-fetch". The problem arises when memory is shared across privilege boundaries. As code validates input, it's critical that data is not fetched twice (or, strictly, more than once), allowing a malicious untrusted called to change the data between the time-of-check and the time-of-use. Let's examine our function:
+One class of vulnerabilities that custom marshaling code should protect against is referred to as time-of-check/time-of-use, or TOCTOU. Another name for this problem is "double-fetch". The problem arises when memory is shared across privilege boundaries. As code validates input, it's critical that data is not fetched twice (or, strictly, more than once), allowing a malicious untrusted caller to change the data between the time-of-check and the time-of-use. Let's examine our function:
 
 ```c++
 // WARNING: Portions of this code are intentionally flawed to demonstrate common pitfalls.
@@ -120,7 +120,7 @@ int ecall_with_user_check2(void* ptr) {
     return render_data(blob->data, blob->size); //TOCTOU: Second fetch
 }
 ```
-There's nothing wrong with the first fetch: The value is validated, and the appropriate logic branch is taken. The problem arises when the code needs the value again and reads it, once again, from the untrusted memory location outside of the enclave. Between the first and subsequent fetch the value may have been changed, neutralizing the size validation, and possibly leading to some enclave memory corruption that is helpful to the attacker. Let's protect the code by "capturing" the values.
+There's nothing wrong with the first fetch: The value is validated, and the appropriate logic branch is taken. The problem arises when the code needs the value again and reads it, once again, from the untrusted memory location outside of the enclave. Between the first and subsequent fetch the value may have been changed, neutralizing the size validation, and possibly leading to some enclave memory corruption that is helpful to the attacker. Let's protect the enclave by "capturing" the values.
 
 > When "capturing" data values in this context, it's important to protect against the compiler's optimization, hence we use the `volatile` qualifier for our local captured variables. Otherwise, the compiler might optimize-away our local variable, removing the TOCTOU protection.
 
@@ -241,7 +241,7 @@ Let's remind ourselves of a way _not_ to handle application secrets. A common ex
 Enclaves provide two properties that enable applications to handle secrets securely: 1) strong identity, 2) runtime protection of secrets in memory. These two properties enable secure point-to-point secret transfers. When applications are built with enclaves, all secret management should occur dynamically _inside_ the enclave and through secure communications with trusted sources, such as cloud provider key vaults. Let's look at one example of how enclave attestation and enclave memory protection can combine to implement a secure channel.
 
 ### Secure Key Release
-One of the core challenges customers have interacting with encrypted environments is how to ensure that they can reliably communicate with the code running in the environment ("enclave code").
+One of the core challenges customers have interacting with encrypted environments is how to ensure that they can securely and reliably communicate with the code running in the environment ("enclave code").
 
 One solution to this problem is what is known as "Secure Key Release", which is a pattern that enables this kind of communication with enclave code.
 
