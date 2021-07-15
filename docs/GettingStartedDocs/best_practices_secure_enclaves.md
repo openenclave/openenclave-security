@@ -1,5 +1,5 @@
 # Best Practices for Keeping Enclaves Secure
-Use this guide to apply secure patterns and avoid common mistakes that put the security of your enclave applications at risk.
+Use this guide to apply secure patterns and avoid common mistakes that put the security of enclave applications at risk.
 
 1.  [Best Practices for Interface Custom Marshaling ](#best-practices-for-interface-custom-marshaling)
 
@@ -12,9 +12,9 @@ Use this guide to apply secure patterns and avoid common mistakes that put the s
 # Best Practices for Interface Custom Marshaling 
 (For an overview of using the Enclave Definition Language (EDL) and the oeedger8r tool to produce enclave interface code, please refer to [Getting started with the Open Enclave edger8r](Edger8rGettingStarted.md).)
 
-Calling into and out of enclaves is done through special methods that switch into and out of the enclave, along with the marshaling of parameters that are passed into these functions. A lot of the code necessary to handle these calls and parameter marshaling are common to all function calls. Marshaling parameters from the host to the enclave for security purposed, and in doing so also helps to mitigate certain processor vulnerabilities (like Spectre). The Open Enclave edger8r helps to define these special functions using EDL files and then generates boilerplate code for you.
+Calling into and out of enclaves uses special methods that orchestrate the context switch and marshal the function parameters. Much of the code necessary to manage these calls and parameter marshaling are common to most applications. The Open Enclave _oeedger8r_, using the interface definition defined by application developers in EDL files, generates boilerplate code for them.
 
-In some uncommon cases, developers may want to pass data types that are not defined at the interface level or handle marshaling differently than the oeedger8r tool generates. This is done by specifying `user_check` for the parameter constraint like the following example:
+In some uncommon cases, developers may want to pass data types that are not defined at the interface level or handle marshaling differently from what the oeedger8r tool generates. To specify this, use `user_check` for the parameter constraint like the following example:
 
 ```c++
 enclave{
@@ -24,9 +24,9 @@ enclave{
     };
 };
 ```
-In this simplified EDL example, the function takes one pointer-to-void parameter. Remember that the primary benefit of using supported types in the EDL is that the generated boiler-plate code performs the necessary and secure marshaling for the developer. When you specify that a parameter is `user_check`, you are signaling to oeedger8r that your application code is going to perform the marshaling. (Two examples of when custom marshaling is helpful are 1) when data formats are dynamic, and 2) when sharing large blocks of memory -- custom marshaling avoids the boiler-plate code's intermediate copying of data into safe in-enclave buffers.) 
+In this simplified EDL example, the function takes one pointer-to-void parameter. Remember that the primary benefit of using supported types in the EDL is that the generated boiler-plate code performs the necessary and secure marshaling for the developer. When developers specify that a parameter is `user_check`, they are signaling to oeedger8r that their application code will perform the marshaling. (Two examples of when custom marshaling is helpful are 1) when data formats are dynamic, and 2) when sharing large blocks of memory -- custom marshaling avoids the boiler-plate code's intermediate copying of data into safe in-enclave buffers.) 
 
-> We'd like to stress that a secure best practice for enclave interfaces is to _avoid_ custom marshaling. But we understand that there may be cases where avoiding it is impractical, so in these sections we will help you do it safely.
+> We'd like to stress that a secure best practice for enclave interfaces is to _avoid_ custom marshaling. But we understand that there may be cases where avoiding it is impractical, so in these sections we will help developers do it safely.
 
 The ecall function implementation below has several problems. We will be correcting this code as we move through the material. The general impetus for custom marshaling in this sample code is to avoid expensive intermediate copying of shared memory introduced by the oeedger8r's generated code. (Data passed to `render_data()` is "flat", that is, the data format is non-referential and thus non-_self_-referencing. These attributes reduce threats to enclaves from untrusted data streams. More on this in the following sections.)
 
@@ -55,7 +55,7 @@ int ecall_with_user_check0(void* ptr) {
 
 ## Ensuring memory is where it should be
 
-Remember that the code we are focused on is running _inside_ of the enclave. The host caller invoked this function from _outside_ the enclave, passing in a pointer value, ostensibly to host memory containing well-formed data. But in the Open Enclave security model, the host caller is untrusted - we must treat untrusted input with caution. 
+Remember that the code we are focused on is running _inside_ of the enclave. The host caller invoked this function from _outside_ the enclave, passing in a pointer to host memory containing well-formed data (in the non-malicious case). But in the Open Enclave security model, the host caller is untrusted - we must treat untrusted input with caution. 
 
 One important security check is to ensure that memory blocks are on the correct side of the security boundary. It's common for host applications to pass host memory blocks to the enclave, as is the case with this example code.
 
@@ -100,7 +100,7 @@ The last condition is subtle: In some potentially malicious cases, the memory ra
 
 ## Time-of-check/Time-of-use or "double-fetch" vulnerabilities
 
-One class of vulnerabilities that your marshaling code should protect against is referred to as time-of-check/time-of-use, or TOCTOU. Another name for this problem is "double-fetch". The problem arises when memory is shared across privilege boundaries. As code validates input, it's critical that data is not fetched twice (or, strictly, more than once), allowing a malicious untrusted called to change the data between the time-of-check and the time-of-use. Let's examine our function:
+One class of vulnerabilities that custom marshaling code should protect against is referred to as time-of-check/time-of-use, or TOCTOU. Another name for this problem is "double-fetch". The problem arises when memory is shared across privilege boundaries. As code validates input, it's critical that data is not fetched twice (or, strictly, more than once), allowing a malicious untrusted called to change the data between the time-of-check and the time-of-use. Let's examine our function:
 
 ```c++
 // WARNING: Portions of this code are intentionally flawed to demonstrate common pitfalls.
@@ -155,7 +155,7 @@ int ecall_with_user_check3(void* ptr) {
 
 Another element of marshaling code is ensuring, as complex structures are parsed, that nested structures are also within the outer bounds. This is especially important for internal functions like `render_data()` that may be unaware that the memory is untrusted. Use the same techniques on the inner structures that were used on the outer.
 
-> A warning about legacy data-parsers: Take care when passing "hot" data to code that may not have been written to parse maliciously crafted input. We have seen cases where legacy code that parses self-formatting or self-refencing data was used in new enclave applications. This can lead to significant vulnerabilities if the data being parsed is still controlled by the host, as may be the case with custom marshaling. In the case of this sample code, as mentioned earlier, `render_data()` parses "flat" data that is not nested nor self-referencing, so it's safe (and performant) to pass it "hot" data that is controlled by the host. Care must still be taken though, to avoid data-consistency and other app-level integrity problems.
+> A warning about legacy data-parsers: Take care when passing "hot" data to code that may not have been written to parse maliciously crafted input. We have seen cases where legacy code that parses self-formatting or self-refencing data was used in new enclave applications. This can lead to significant vulnerabilities if the data being parsed is still controlled by the host, as may be the case with custom marshaling. In the case of this sample code, as mentioned earlier, `render_data()` parses "flat" data that is not nested nor self-referencing, so it's safe (and performant) to pass it "hot" data that is controlled by the host. Care must be taken though, to avoid data-consistency and other app-level integrity problems.
 
 ```diff
 int ecall_with_user_check4(void* ptr) {
@@ -225,7 +225,7 @@ int ecall_with_user_check5(void* ptr) {
 
 Open Enclave is an SDK that helps developers build apps that will run inside a hardware-based Trusted Execution Environment (TEE). At their core, TEEs protect application code and data at runtime from the host environment. Without new, hardware-implemented protections, a malicious or compromised host operating system would be able to modify code or read data. Any secrets managed by an application during runtime would be at risk of exposure. Open Enclave SDK helps developers build applications that are protected from these threats.
 
-> It's important to note that enclaves do not provide _code confidentiality_. This is noteworthy in the context of this discussion because, as you will read, hard-coded credentials in application code are to be avoided -- with or without enclave protections.
+> It's important to note that enclaves do not provide _code confidentiality_. This is noteworthy in the context of this discussion because, as will be discussed, hard-coded credentials in application code are to be avoided -- with or without enclave protections.
 
 Enclaves provide new trust boundary protections that address old threats and open new capabilities. But just as Open Enclave and TEEs shift the security model, application developers must shift how they handle data, especially secrets, like keys and passwords.
 <br />
@@ -238,10 +238,10 @@ Let's remind ourselves of a way _not_ to handle application secrets. A common ex
 <br />
 ## The New, Secure Enclave Way to Handle Application Secrets
 
-Enclaves provide two properties that enable applications to handle secrets securely: 1) strong identity, 2) runtime protection of secrets in memory. These two properties enable secure point-to-point secret transfers. When you base your applications on enclaves, all secret management should occur dynamically _inside_ the enclave and through secure communications with trusted sources, such as cloud provider key vaults. Let's look at one example of how enclave attestation and enclave memory protection can combine to implement a secure channel.
+Enclaves provide two properties that enable applications to handle secrets securely: 1) strong identity, 2) runtime protection of secrets in memory. These two properties enable secure point-to-point secret transfers. When applications are built with enclaves, all secret management should occur dynamically _inside_ the enclave and through secure communications with trusted sources, such as cloud provider key vaults. Let's look at one example of how enclave attestation and enclave memory protection can combine to implement a secure channel.
 
 ### Secure Key Release
-One of the core challenges customers have interacting with encrypted environments is how to ensure that you can reliably communicate with the code running in the environment ("enclave code").
+One of the core challenges customers have interacting with encrypted environments is how to ensure that they can reliably communicate with the code running in the environment ("enclave code").
 
 One solution to this problem is what is known as "Secure Key Release", which is a pattern that enables this kind of communication with enclave code.
 
