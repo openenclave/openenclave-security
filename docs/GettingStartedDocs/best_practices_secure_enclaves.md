@@ -10,7 +10,7 @@ Use this guide to apply secure patterns and avoid common mistakes that put the s
 <br />
 
 # Best Practices for Interface Custom Marshaling 
-(For an overview of using the Enclave Definition Language (EDL) and the oeedger8r tool to produce enclave interface code, please refer to [Getting started with the Open Enclave edger8r](Edger8rGettingStarted.md).)
+(For an overview of using the Enclave Definition Language (EDL) and the oeedger8r tool to produce enclave interface code, please refer to [Getting started with the Open Enclave edger8r](https://github.com/openenclave/openenclave/blob/master/docs/GettingStartedDocs/Edger8rGettingStarted.md).)
 
 Calling into and out of enclaves uses special methods that orchestrate the context switch and marshal the function parameters. Much of the code necessary to manage these calls and parameter marshaling are common to most applications. The Open Enclave _oeedger8r_, using the interface definition defined by application developers in EDL files, generates boilerplate code for them.
 
