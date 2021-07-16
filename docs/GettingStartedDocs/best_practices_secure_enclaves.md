@@ -1,23 +1,23 @@
 # Best Practices for Keeping Enclaves Secure
 Use this guide to apply secure patterns and avoid common mistakes that put the security of enclave applications at risk.
 
-1.  [Best Practices for Interface Custom Marshaling ](#1.-best-practices-for-interface-custom-marshaling)
+1.  [Best Practices for Interface Custom Marshaling ](#1-best-practices-for-interface-custom-marshaling)
 
-    1.1 [Ensuring memory is where it should be](#1.1-ensuring-memory-is-where-it-should-be)
+    1.1 [Ensuring memory is where it should be](#11-ensuring-memory-is-where-it-should-be)
 
-    1.2 [SGX enclaves: oe_is_within_enclave vs. oe_is_outside_enclave](#1.2-SGX-enclaves:-oe_is_within_enclave-vs.-oe_is_outside_enclave)
+    1.2 [SGX enclaves: oe_is_within_enclave vs. oe_is_outside_enclave](#12-sgx-enclaves-oe_is_within_enclave-vs-oe_is_outside_enclave)
 
-    1.3 [Time-of-check/Time-of-use or "double-fetch" vulnerabilities](#1.3-Time-of-check/Time-of-use-or-"double-fetch"-vulnerabilities)
+    1.3 [TOCTOU or double fetch vulnerabilities](13-toctou-or-double-fetch-vulnerabilities)
 
-    1.4 [Ensure proper bounding of data buffers](#1.4-Ensure-proper-bounding-of-data-buffers)
+    1.4 [Ensure proper bounding of data buffers](#14-ensure-proper-bounding-of-data-buffers)
 
-    1.5 [Corrected enclave ecall with custom marshaling](#1.5-Corrected-enclave-ecall-with-custom-marshaling)
+    1.5 [Corrected enclave ecall with custom marshaling](#15-corrected-enclave-ecall-with-custom-marshaling)
 
-2.  [Handling Secrets in Enclave Applications](#2.-handling-secrets-in-enclave-applications)
+2.  [Handling Secrets in Enclave Applications](#2-handling-secrets-in-enclave-applications)
 
-    2.1 [How _Not_ to Handle Application Secrets](#2.1-How-Not-to-Handle-Application-Secrets)
+    2.1 [How _Not_ to Handle Application Secrets](#21-how-not-to-handle-application-secrets)
 
-    2.2 [The New Secure Enclave Way to Handle Application Secrets](#2.2-The-New-Secure-Enclave-Way-to-Handle-Application-Secrets)
+    2.2 [The New Secure Enclave Way to Handle Application Secrets](#22-the-new-secure-enclave-way-to-handle-application-secrets)
 
 <br />
 <br />
@@ -114,7 +114,7 @@ The last condition is subtle: In some potentially malicious cases, the memory ra
 <br />
 <br />
 
-## 1.3 Time-of-check/Time-of-use or "double-fetch" vulnerabilities
+## 1.3 TOCTOU or double fetch vulnerabilities
 
 One class of vulnerabilities that custom marshaling code should protect against is referred to as time-of-check/time-of-use, or TOCTOU. Another name for this problem is "double-fetch". The problem arises when memory is shared across privilege boundaries. As code validates input, it's critical that data is not fetched twice (or, strictly, more than once), allowing a malicious untrusted caller to change the data between the time-of-check and the time-of-use. Let's examine our function:
 
