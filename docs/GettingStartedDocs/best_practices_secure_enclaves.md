@@ -5,7 +5,7 @@ Use this guide to apply secure patterns and avoid common mistakes that put the s
 
     1.1 [Ensuring memory is where it should be](#1.1-ensuring-memory-is-where-it-should-be)
 
-    1.2 [SGX-based enclaves: oe_is_within_enclave != !oe_is_outside_enclave](#1.2-SGX-based-enclaves:-oe_is_within_enclave-!=-!oe_is_outside_enclave)
+    1.2 [SGX enclaves: oe_is_within_enclave vs. oe_is_outside_enclave](#1.2-SGX-enclaves:-oe_is_within_enclave-vs.-oe_is_outside_enclave)
 
     1.3 [Time-of-check/Time-of-use or "double-fetch" vulnerabilities](#1.3-Time-of-check/Time-of-use-or-"double-fetch"-vulnerabilities)
 
@@ -97,9 +97,9 @@ int ecall_with_user_check1(void* ptr) {
     return render_data(blob->data, blob->size);
 }
 ```
-## 1.2 SGX-based enclaves: oe_is_within_enclave != !oe_is_outside_enclave
+## 1.2 SGX enclaves: oe_is_within_enclave vs. oe_is_outside_enclave
 
-Let's highlight a logical mistake that we've seen made with SGX enclaves. Some have regarded the memory validation functions as boolean opposites of each other, that is: `oe_is_within_enclave() == !oe_is_outside_enclave()`. This is incorrect for several reasons.
+Let's highlight a logical mistake that we've seen made with SGX-based enclaves. Some have regarded the memory validation functions as boolean opposites of each other, that is: `oe_is_within_enclave() == !oe_is_outside_enclave()`. This is incorrect for several reasons.
 
 To understand why this function pair are _not_ boolean opposites, it helps to consider the SGX implementation: [memory.c](https://github.com/openenclave/openenclave/blob/08ebe60c1d2e3ea24ac634c673a420296bff3352/enclave/core/sgx/memory.c). There are three conditions that the functions validate:
 1)	The pointer is not null.
