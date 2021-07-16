@@ -7,7 +7,7 @@ Use this guide to apply secure patterns and avoid common mistakes that put the s
 
     1.2 [SGX enclaves: oe_is_within_enclave vs. oe_is_outside_enclave](#12-sgx-enclaves-oe_is_within_enclave-vs-oe_is_outside_enclave)
 
-    1.3 [TOCTOU or double fetch vulnerabilities](13-toctou-or-double-fetch-vulnerabilities)
+    1.3 [TOCTOU or double fetch vulnerabilities](#13-toctou-or-double-fetch-vulnerabilities)
 
     1.4 [Ensure proper bounding of data buffers](#14-ensure-proper-bounding-of-data-buffers)
 
