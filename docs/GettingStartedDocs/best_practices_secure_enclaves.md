@@ -1,15 +1,29 @@
 # Best Practices for Keeping Enclaves Secure
 Use this guide to apply secure patterns and avoid common mistakes that put the security of enclave applications at risk.
 
-1.  [Best Practices for Interface Custom Marshaling ](#best-practices-for-interface-custom-marshaling)
+1.  [Best Practices for Interface Custom Marshaling ](#1.-best-practices-for-interface-custom-marshaling)
 
-2.  [Handling Secrets in Enclave Applications](#handling-secrets-in-enclave-applications)
+    1.1 [Ensuring memory is where it should be](#1.1-ensuring-memory-is-where-it-should-be)
+
+    1.2 [SGX-based enclaves: oe_is_within_enclave() != !oe_is_outside_enclave()](#1.2-SGX-based-enclaves:-oe_is_within_enclave()-!=-!oe_is_outside_enclave())
+
+    1.3 [Time-of-check/Time-of-use or "double-fetch" vulnerabilities](#1.3-Time-of-check/Time-of-use-or-"double-fetch"-vulnerabilities)
+
+    1.4 [Ensure proper bounding of data buffers](#1.4-Ensure-proper-bounding-of-data-buffers)
+
+    1.5 [Corrected enclave ecall with custom marshaling](#1.5-Corrected-enclave-ecall-with-custom-marshaling)
+
+2.  [Handling Secrets in Enclave Applications](#2.-handling-secrets-in-enclave-applications)
+
+    2.1 [How _Not_ to Handle Application Secrets](#2.1-How-Not-to-Handle-Application-Secrets)
+
+    2.2 [The New Secure Enclave Way to Handle Application Secrets](#2.2-The-New-Secure-Enclave-Way-to-Handle-Application-Secrets)
 
 <br />
 <br />
 <br />
 
-# Best Practices for Interface Custom Marshaling 
+# 1. Best Practices for Interface Custom Marshaling 
 (For an overview of using the Enclave Definition Language (EDL) and the oeedger8r tool to produce enclave interface code, please refer to [Getting started with the Open Enclave edger8r](https://github.com/openenclave/openenclave/blob/master/docs/GettingStartedDocs/Edger8rGettingStarted.md).)
 
 Calling into and out of enclaves uses special methods that orchestrate the context switch and marshal the function parameters. Much of the code necessary to manage these calls and parameter marshaling are common to most applications. The Open Enclave _oeedger8r_, using the interface definition defined by application developers in EDL files, generates boilerplate code for them.
@@ -46,6 +60,7 @@ int ecall_with_user_check0(void* ptr) {
 
     blob = (blob_t*)ptr;
 
+    // blobs to be rendered are limited to 4K
     if (blob->size > 4096)
         return -1;
 
@@ -53,13 +68,13 @@ int ecall_with_user_check0(void* ptr) {
 }
 ```
 
-## Ensuring memory is where it should be
+## 1.1 Ensuring memory is where it should be
 
 Remember that the code we are focused on is running _inside_ of the enclave. The host caller invoked this function from _outside_ the enclave, passing in a pointer to host memory containing well-formed data (in the non-malicious case). But in the Open Enclave security model, the host caller is untrusted - we must treat untrusted input with caution. 
 
-One important security check is to ensure that memory blocks are on the correct side of the security boundary. It's common for host applications to pass host memory blocks to the enclave, as is the case with this example code.
+One important security check is to ensure that memory blocks are on the correct side of the security boundary. It's common for host applications to pass host memory blocks to the enclave, as is the case with this example code. The Open Enclave SDK provides two library functions for checking memory buffers: `oe_is_within_enclave()` and `oe_is_outside_enclave()`.
 
-Let's update the code to ensure the memory block is located _strictly_ outside the secured enclave memory region before operating on it.
+Let's update the code to ensure that the memory block is at least the size of a `blob_t` and is located _strictly_ outside the secured enclave memory region before operating on it by calling `oe_is_outside_enclave()`.
 
 ```diff
 // WARNING: Portions of this code are intentionally flawed to demonstrate common pitfalls.
@@ -75,15 +90,16 @@ int ecall_with_user_check1(void* ptr) {
 
     blob = (blob_t*)ptr;
 
+    // Blobs to be rendered are limited to 4K.
     if (blob->size > 4096)
         return -1;
 
     return render_data(blob->data, blob->size);
 }
 ```
-## oe_is_within_enclave() != !oe_is_outside_enclave()
+## 1.2 SGX-based enclaves: oe_is_within_enclave() != !oe_is_outside_enclave()
 
-Let's highlight a logical mistake that we've seen made. Some have regarded the memory validation functions as boolean opposites of each other, that is: `oe_is_within_enclave() == !oe_is_outside_enclave()`. This is incorrect for several reasons.
+Let's highlight a logical mistake that we've seen made with SGX enclaves. Some have regarded the memory validation functions as boolean opposites of each other, that is: `oe_is_within_enclave() == !oe_is_outside_enclave()`. This is incorrect for several reasons.
 
 To understand why this function pair are _not_ boolean opposites, it helps to consider the SGX implementation: [memory.c](https://github.com/openenclave/openenclave/blob/08ebe60c1d2e3ea24ac634c673a420296bff3352/enclave/core/sgx/memory.c). There are three conditions that the functions validate:
 1)	The pointer is not null.
@@ -98,7 +114,7 @@ The last condition is subtle: In some potentially malicious cases, the memory ra
 <br />
 <br />
 
-## Time-of-check/Time-of-use or "double-fetch" vulnerabilities
+## 1.3 Time-of-check/Time-of-use or "double-fetch" vulnerabilities
 
 One class of vulnerabilities that custom marshaling code should protect against is referred to as time-of-check/time-of-use, or TOCTOU. Another name for this problem is "double-fetch". The problem arises when memory is shared across privilege boundaries. As code validates input, it's critical that data is not fetched twice (or, strictly, more than once), allowing a malicious untrusted caller to change the data between the time-of-check and the time-of-use. Let's examine our function:
 
@@ -114,6 +130,7 @@ int ecall_with_user_check2(void* ptr) {
 
     blob = (blob_t*)ptr;
 
+    // Blobs to be rendered are limited to 4K.
     if (blob->size > 4096) //TOCTOU: First fetch
         return -1;
 
@@ -142,6 +159,7 @@ int ecall_with_user_check3(void* ptr) {
 +   captured_data = blob->data;
 +   captured_size = blob->size;
 
+    // Blobs to be rendered are limited to 4K.
 -   if (blob->size > 4096) //TOCTOU: First fetch
 +   if (captured_size > 4096)
         return -1;
@@ -151,7 +169,7 @@ int ecall_with_user_check3(void* ptr) {
 }
 ```
 
-## Ensure proper bounding of data buffers
+## 1.4 Ensure proper bounding of data buffers
 
 Another element of marshaling code is ensuring, as complex structures are parsed, that nested structures are also within the outer bounds. This is especially important for internal functions like `render_data()` that may be unaware that the memory is untrusted. Use the same techniques on the inner structures that were used on the outer.
 
@@ -174,6 +192,7 @@ int ecall_with_user_check4(void* ptr) {
     captured_data = blob->data;
     captured_size = blob->size;
 
+    // Blobs to be rendered are limited to 4K.
     if (captured_size > 4096)
         return -1;
 
@@ -185,9 +204,9 @@ int ecall_with_user_check4(void* ptr) {
     return render_data(captured_data, captured_size);
 }
 ```
-## Our secure enclave function
+## 1.5 Corrected enclave ecall with custom marshaling
 
-Thanks for sticking with us. Here is our corrected function:
+Thanks for sticking with us. Here is our corrected ecall function that marshals the parameter correctly:
 ```c++
 int ecall_with_user_check5(void* ptr) {
 
@@ -205,6 +224,7 @@ int ecall_with_user_check5(void* ptr) {
     captured_data = blob->data;
     captured_size = blob->size;
 
+    // Blobs to be rendered are limited to 4K.
     if (captured_size > 4096)
         return -1;
 
@@ -221,7 +241,7 @@ int ecall_with_user_check5(void* ptr) {
 <br />
 <br />
 
-# Handling Secrets in Enclave Applications
+# 2. Handling Secrets in Enclave Applications
 
 Open Enclave is an SDK that helps developers build apps that will run inside a hardware-based Trusted Execution Environment (TEE). At their core, TEEs protect application code and data at runtime from the host environment. Without new, hardware-implemented protections, a malicious or compromised host operating system would be able to modify code or read data. Any secrets managed by an application during runtime would be at risk of exposure. Open Enclave SDK helps developers build applications that are protected from these threats.
 
@@ -231,12 +251,14 @@ Enclaves provide new trust boundary protections that address old threats and ope
 <br />
 <br />
 <br />
-## How __Not__ to Handle Application Secrets
+
+## 2.1 How _Not_ to Handle Application Secrets
 Let's remind ourselves of a way _not_ to handle application secrets. A common example of this well-discussed application weakness is described by [CWE-798: Use of Hard-coded Credentials (4.4) (mitre.org)](https://cwe.mitre.org/data/definitions/798.html). While application security is often a tradeoff between multiple factors and broad edicts are not always appropriate, it's not controversial to simply say that hard-coding credentials in application code _should not be done_.
 <br />
 <br />
 <br />
-## The New, Secure Enclave Way to Handle Application Secrets
+
+## 2.2 The New, Secure Enclave Way to Handle Application Secrets
 
 Enclaves provide two properties that enable applications to handle secrets securely: 1) strong identity, 2) runtime protection of secrets in memory. These two properties enable secure point-to-point secret transfers. When applications are built with enclaves, all secret management should occur dynamically _inside_ the enclave and through secure communications with trusted sources, such as cloud provider key vaults. Let's look at one example of how enclave attestation and enclave memory protection can combine to implement a secure channel.
 
@@ -251,7 +273,3 @@ The enclave code then calculates the SHA256 value of the public key and passes i
 The client then sends the SGX quote and the serialized key to the attestation service. The attestation service will validate the quote and ensure that the hash of the key is present in the quote and will issue an "Attestation Token".
 
 The client can then send that Attestation Token (which contains the serialized key) to a 3rd party "relying party". The relying party then validates that the attestation token was created by the attestation service, and thus the serialized key can be used to encrypt some data held by the "relying party" to send to the service.
-
-
-
-
