@@ -38,11 +38,12 @@ jobs:
           ONEFUZZ_ENDPOINT: ${{ secrets.onefuzz_endpoint }}
           ONEFUZZ_CLIENT_ID: ${{ secrets.onefuzz_client_id }}
           ONEFUZZ_CLIENT_SECRET: ${{ secrets.onefuzz_client_secret }}
-          ONEFUZZ_PAT: ${{ secrets.onefuzz_pat }}
+          OE_SEC_PAT: ${{ secrets.oe_sec_pat }}
+          OE_SEC_ADMIN: ${{ secrets.oe_sec_admin }}
         run: |
           set -ex
           sudo -H python3 -m pip install onefuzz==2.23.0
           sed -i s/OE_SEC_ADMIN/${OE_SEC_ADMIN}/ .github/workflows/github-issues.json
-          sed -i s/OE_SEC_PAT/${ONEFUZZ_PAT}/ .github/workflows/github-issues.json
+          sed -i s/OE_SEC_PAT/${OE_SEC_PAT}/ .github/workflows/github-issues.json
           onefuzz config --endpoint $ONEFUZZ_ENDPOINT --client_id $ONEFUZZ_CLIENT_ID --client_secret $ONEFUZZ_CLIENT_SECRET
           ./src/dynamic/scripts/onefuzz/run.sh
