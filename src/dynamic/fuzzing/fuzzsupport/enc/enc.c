@@ -44,7 +44,7 @@ void *__dlsym(void *restrict handle, const char *restrict name, void *restrict s
     if (result != OE_OK)
         goto done;
 
-    const uint8_t* baseaddr = (const uint8_t*)__oe_get_enclave_base();
+    const uint8_t* baseaddr = (const uint8_t*)__oe_get_enclave_base_address();
     uint64_t* dest = (uint64_t*)(baseaddr + offset);
 
     ret = (void*)dest;

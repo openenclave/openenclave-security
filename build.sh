@@ -111,7 +111,7 @@ if [[ ! -d "${OE_INSTRUMENTED_BUILD}" ]]; then
     pushd "${OE_INSTRUMENTED_BUILD}"
     cmake "${OE_SRC_ROOT}" -GNinja \
         -DENABLE_FUZZING=ON \
-        -DBUILD_OEGENERATE_TOOL=OFF \
+        -DBUILD_OEUTIL_TOOL=OFF \
         -DBUILD_TESTS=OFF \
         -DCMAKE_C_COMPILER="${CLANG}" \
         -DCMAKE_CXX_COMPILER="${CLANG_CPP}" \
