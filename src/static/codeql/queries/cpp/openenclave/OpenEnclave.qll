@@ -8,8 +8,8 @@ import Dereferences
 /**
  * EnclaveEnterFunction - Entry point function for an enclave.
  * During an ECALL __oe_handle_main() function is called by oe_enter(), which is called by the EENTER instruction.
- * Since oe_enter is implemented in assembly, CodeQL cannot construct call flow graph flowing from host to enclave.
- * __oe_handle_main can be consideredd as enclave entry point function to porform taint analysis on untrusted host pointers.
+ * Since oe_enter is implemented in assembly, CodeQL cannot construct a call flow graph flowing from host to enclave.
+ * __oe_handle_main can be considered as enclave entry point function to perform taint analysis on untrusted host pointers.
  */
 class EnclaveEnterFunction extends Function {
   EnclaveEnterFunction() { this.getName() = "__oe_handle_main" }
