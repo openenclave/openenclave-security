@@ -1,4 +1,5 @@
 name: openenclave-codeql-cpp
 version: 0.0.0
-libraryPathDependencies: codeql-cpp
+dependencies:
+  codeql/cpp-all: "*"
 suites: suites

@@ -15,7 +15,7 @@ from subprocess import CalledProcessError
 from requests import get
 
 BUILD_DIR = "build"
-CODEQL_CLI_DEFAULT_VERSION = "v2.3.3"
+CODEQL_CLI_DEFAULT_VERSION = "v2.20.1"
 CODEQL_CLI_URL = "https://github.com/github/codeql-cli-binaries/releases/download/{}/codeql-linux64.zip"
 PROJECT_CODEQL_DB = "openenclave-codeql-db"
 STATIC_CODEQL_DIR = "src/static/codeql"

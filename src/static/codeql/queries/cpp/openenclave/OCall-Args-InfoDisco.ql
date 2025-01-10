@@ -12,8 +12,9 @@
 
 import cpp
 import semmle.code.cpp.Type
-import semmle.code.cpp.dataflow.DataFlow
 import semmle.code.cpp.models.implementations.Strcpy
+import semmle.code.cpp.ir.dataflow.internal.DataFlowPrivate
+import semmle.code.cpp.dataflow.internal.DataFlowUtil
 import Exclusions
 import OpenEnclave
 
@@ -27,5 +28,5 @@ where
   not exists(v.getAnAssignment()) and
   not v.getAnAccess() =
     any(Call c | c.getTarget().getName().matches("%mem%")).getAnArgumentSubExpr(0) and
-  DataFlow::localFlowStep(DataFlow::exprNode(v.getAnAccess()), _)
+  localFlowStep(exprNode(v.getAnAccess()), _)
 select va, "Uninitialized argument passed to OCall"

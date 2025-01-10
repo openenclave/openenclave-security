@@ -11,8 +11,6 @@
  */
 
 import cpp
-import semmle.code.cpp.dataflow.DataFlow
-import semmle.code.cpp.dataflow.TaintTracking
 import semmle.code.cpp.controlflow.Guards
 import UseAfterFree
 import Memory
