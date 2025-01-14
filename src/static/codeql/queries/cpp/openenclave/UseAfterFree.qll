@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 import cpp
 import semmle.code.cpp.controlflow.Guards
-// private import semmle.code.cpp.dataflow.RecursionPrevention
 import Dereferences
 import PointerDataFlow
 import Memory
