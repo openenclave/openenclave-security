@@ -23,8 +23,12 @@ import OpenEnclave
  * validated for envalve memory range protection by issuing a call to IsOutsideEnclave.
  */
 predicate isOutsideEnclaveBarrierGuardChecks(IRGuardCondition g, Expr checked, boolean isTrue) {
-  checked = g.getUnconvertedResultExpression().(IsOutsideEnclaveFunctionCall).getArgument(0) and
-  isTrue = true
+  exists(Call call |
+    g.getUnconvertedResultExpression() = call and
+    call instanceof IsOutsideEnclaveFunctionCall and
+    checked = call.getArgument(0) and
+    isTrue = true
+  )
 }
 
 /**
@@ -43,6 +47,8 @@ module IsOutsideEnclaveBarrierConfig implements DataFlow::ConfigSig {
     )
   }
 
+  // Treat a call to IsOutsideEnclaveFunction as a barrier
+  // And stop tracking data flow
   predicate isBarrier(DataFlow::Node node) {
     // /3 means there 3 parameters
     node = DataFlow::BarrierGuard<isOutsideEnclaveBarrierGuardChecks/3>::getABarrierNode()
@@ -51,6 +57,7 @@ module IsOutsideEnclaveBarrierConfig implements DataFlow::ConfigSig {
 
 module IsOutsideEnclaveBarrierFlow = TaintTracking::Global<IsOutsideEnclaveBarrierConfig>;
 
+// Find any access to host parameter without calling IsOutsideEnclaveFunction
 from UntrustedMemory hostMem, ECallInputParameter inParam
 where
   hostMem.isOriginatedFrom(inParam) and
