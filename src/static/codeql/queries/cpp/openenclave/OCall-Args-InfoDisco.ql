@@ -12,8 +12,8 @@
 
 import cpp
 import semmle.code.cpp.Type
-import semmle.code.cpp.dataflow.DataFlow
 import semmle.code.cpp.models.implementations.Strcpy
+import semmle.code.cpp.dataflow.new.DataFlow
 import Exclusions
 import OpenEnclave
 

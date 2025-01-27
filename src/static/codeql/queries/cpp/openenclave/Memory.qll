@@ -1,8 +1,6 @@
 // Copyright (c) Open Enclave SDK contributors.
 // Licensed under the MIT License.
 import cpp
-import semmle.code.cpp.dataflow.DataFlow
-import semmle.code.cpp.dataflow.TaintTracking
 import PointerDataFlow
 
 /**
@@ -49,12 +47,12 @@ class EffectiveFreeCall extends FunctionCall {
 
   EffectiveFreeCall() {
     freedArg = this.getAnArgument() and
-    exists(FreeCall freeCall, VariableAccess freedAccess, PointerConfig config |
+    exists(FreeCall freeCall, VariableAccess freedAccess |
       freeCall.getFreedVariableAccess() = freedAccess and
       // the argument of this call flows to the freed variable access
-      config.hasFlow(DataFlow::exprNode(freedArg), DataFlow::exprNode(freedAccess)) and
+      PointerFlow::flow(DataFlow::exprNode(freedArg), DataFlow::exprNode(freedAccess)) and
       // but the result of this call does not; this avoids spuriously flagging pass-through functions
-      not config.hasFlow(DataFlow::exprNode(this), DataFlow::exprNode(freedAccess))
+      not PointerFlow::flow(DataFlow::exprNode(this), DataFlow::exprNode(freedAccess))
     )
   }
 

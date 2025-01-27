@@ -1,8 +1,6 @@
 // Copyright (c) Open Enclave SDK contributors.
 // Licensed under the MIT License.
 import cpp
-import semmle.code.cpp.Type
-import semmle.code.cpp.dataflow.TaintTracking
 import Dereferences
 
 /**

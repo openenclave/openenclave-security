@@ -13,49 +13,53 @@
 
 import cpp
 import semmle.code.cpp.Type
-import semmle.code.cpp.dataflow.TaintTracking
+import semmle.code.cpp.controlflow.IRGuards
+import semmle.code.cpp.dataflow.new.DataFlow
+import semmle.code.cpp.dataflow.new.TaintTracking
 import OpenEnclave
 
 /**
- * IsOutsideEnclaveBarrierGuard - A gaurd condition to check if a basic block is 
+ * isOutsideEnclaveBarrierGuardChecks - A gaurd condition to check if a basic block is
  * validated for envalve memory range protection by issuing a call to IsOutsideEnclave.
  */
-class IsOutsideEnclaveBarrierGuard extends DataFlow2::BarrierGuard {
-  IsOutsideEnclaveBarrierGuard() { this instanceof IsOutsideEnclaveFunctionCall }
-
-  override predicate checks(Expr checked, boolean isTrue) {
-    checked = this.(IsOutsideEnclaveFunctionCall).getArgument(0) and
+predicate isOutsideEnclaveBarrierGuardChecks(IRGuardCondition g, Expr checked, boolean isTrue) {
+  exists(Call call |
+    g.getUnconvertedResultExpression() = call and
+    call instanceof IsOutsideEnclaveFunctionCall and
+    checked = call.getArgument(0) and
     isTrue = true
-  }
+  )
 }
 
 /**
- * IsOutsideEnclaveBarrierConfig - Data-flow configuration to check if the sink is 
+ * IsOutsideEnclaveBarrierConfig - Data-flow configuration to check if the sink is
  * protected by IsOutsideEnclave validation.
  */
-class IsOutsideEnclaveBarrierConfig extends DataFlow::Configuration {
-  IsOutsideEnclaveBarrierConfig() { this = "IsOutsideEnclaveBarrierConfig" }
-
-  override predicate isSource(DataFlow::Node source) {
+module IsOutsideEnclaveBarrierConfig implements DataFlow::ConfigSig {
+  predicate isSource(DataFlow::Node source) {
     not exists(IsOutsideEnclaveFunctionCall fc | fc.getArgument(0) = source.asExpr())
   }
 
-  override predicate isSink(DataFlow::Node sink) {
+  predicate isSink(DataFlow::Node sink) {
     exists(AssignExpr assExp |
       assExp.getRValue() = sink.asExpr() and
       assExp.getLValue().getType() instanceof PointerType
     )
   }
 
-  override predicate isBarrierGuard(DataFlow::BarrierGuard bg) {
-    bg instanceof IsOutsideEnclaveBarrierGuard
+  // Treat a call to IsOutsideEnclaveFunction as a barrier
+  // And stop tracking data flow
+  predicate isBarrier(DataFlow::Node node) {
+    // /3 means there 3 parameters
+    node = DataFlow::BarrierGuard<isOutsideEnclaveBarrierGuardChecks/3>::getABarrierNode()
   }
 }
 
-from
-  UntrustedMemory hostMem, ECallInputParameter inParam,
-  IsOutsideEnclaveBarrierConfig isOutsideConfig
+module IsOutsideEnclaveBarrierFlow = TaintTracking::Global<IsOutsideEnclaveBarrierConfig>;
+
+// Find any access to host parameter without calling IsOutsideEnclaveFunction
+from UntrustedMemory hostMem, ECallInputParameter inParam
 where
   hostMem.isOriginatedFrom(inParam) and
-  isOutsideConfig.hasFlow(DataFlow::exprNode(hostMem), DataFlow::exprNode(hostMem))
+  IsOutsideEnclaveBarrierFlow::flow(DataFlow::exprNode(hostMem), DataFlow::exprNode(hostMem))
 select hostMem, "Missing enclave boundary check when accessing untrusted memory."

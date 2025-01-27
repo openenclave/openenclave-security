@@ -1,10 +1,7 @@
 // Copyright (c) Open Enclave SDK contributors.
 // Licensed under the MIT License.
 import cpp
-import semmle.code.cpp.dataflow.DataFlow
-import semmle.code.cpp.dataflow.TaintTracking
 import semmle.code.cpp.controlflow.Guards
-private import semmle.code.cpp.dataflow.RecursionPrevention
 import Dereferences
 import PointerDataFlow
 import Memory
@@ -52,9 +49,9 @@ predicate useAfterFree(
 ) {
   va1 = call.getAFreedArgument() and
   // the same source value is accessed
-  exists(PointerConfig config |
-    config.hasFlow(source, DataFlow::exprNode(va1)) and
-    config.hasFlow(source, DataFlow::exprNode(va2))
+  exists( |
+    PointerFlow::flow(source, DataFlow::exprNode(va1)) and
+    PointerFlow::flow(source, DataFlow::exprNode(va2))
   ) and
   // the second access is a successor of the free call
   reachesWithoutReassignment(call, va2) and
